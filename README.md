@@ -9,7 +9,7 @@ API em Django + Django REST Framework para monitoramento hidrológico.
 - Django REST Framework
 - django-filter
 - drf-spectacular (documentação OpenAPI)
-- SQLite (banco de desenvolvimento)
+- PostgreSQL 17 (em Docker)
 
 ## Estrutura
 
@@ -17,6 +17,9 @@ API em Django + Django REST Framework para monitoramento hidrológico.
 .
 ├── manage.py
 ├── requirements.txt
+├── BancoDeDados.py             # popula o banco com dados simulados
+├── docker-compose.yml          # sobe o PostgreSQL
+├── docker/postgres/Dockerfile  # imagem do PostgreSQL
 ├── monitoramentohidrologico/   # configuração do projeto (settings, urls, wsgi/asgi)
 └── monitoramento/              # app principal
 ```
@@ -25,6 +28,7 @@ API em Django + Django REST Framework para monitoramento hidrológico.
 
 - **Python 3.12 ou superior** (exigido pelo Django 6.1)
 - **Git**
+- **Docker** com o plugin **Docker Compose** (para o banco de dados)
 
 Confira a versão instalada:
 
@@ -90,13 +94,29 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4. Aplicar as migrations
+### 4. Subir o banco de dados
+
+```bash
+docker compose up -d --build --wait
+```
+
+O PostgreSQL fica disponível em `127.0.0.1:5433` (banco, usuário e senha `monitoramento`). Veja mais em [Banco de dados (Docker)](#banco-de-dados-docker).
+
+### 5. Aplicar as migrations
 
 ```bash
 python manage.py migrate
 ```
 
-### 5. Criar um superusuário (opcional)
+### 6. Importar os dados simulados
+
+```bash
+python BancoDeDados.py
+```
+
+Cria as tabelas `stations` e `observations` e insere 3 estações com leituras de nível e chuva das últimas 72 horas. Pode ser rodado mais de uma vez: registros que já existem são ignorados.
+
+### 7. Criar um superusuário (opcional)
 
 Necessário para acessar o painel administrativo:
 
@@ -104,7 +124,7 @@ Necessário para acessar o painel administrativo:
 python manage.py createsuperuser
 ```
 
-### 6. Rodar o servidor
+### 8. Rodar o servidor
 
 ```bash
 python manage.py runserver
@@ -115,12 +135,68 @@ O projeto fica disponível em:
 - Aplicação: http://127.0.0.1:8000/
 - Admin: http://127.0.0.1:8000/admin/
 
+## Banco de dados (Docker)
+
+Os dados de conexão são lidos de variáveis de ambiente, iguais no `docker-compose.yml`, no `settings.py` e no `BancoDeDados.py`:
+
+| Variável      | Padrão          |
+|---------------|-----------------|
+| `PG_HOST`     | `127.0.0.1`     |
+| `PG_PORT`     | `5433`          |
+| `PG_DB`       | `monitoramento` |
+| `PG_USER`     | `monitoramento` |
+| `PG_PASSWORD` | `monitoramento` |
+
+Para trocar um valor, defina a variável antes dos comandos (ex.: `export PG_PORT=5440`) ou crie um arquivo `.env` na raiz com `PG_PORT=5440`. O Docker Compose lê o `.env` automaticamente; o Django e o `BancoDeDados.py` não, então nesse caso exporte a variável também no terminal.
+
+### Subir e parar
+
+| Ação                                     | Comando                               |
+|------------------------------------------|---------------------------------------|
+| Subir o banco                            | `docker compose up -d --build --wait` |
+| Ver o status                             | `docker compose ps`                   |
+| Ver os logs                              | `docker compose logs -f db`           |
+| Abrir o `psql` dentro do container       | `docker compose exec db psql -U monitoramento -d monitoramento` |
+| Parar (mantém os dados)                  | `docker compose stop`                 |
+| Remover o container (mantém os dados)    | `docker compose down`                 |
+
+Os dados ficam no volume `pgdata` e continuam lá depois de `stop` ou `down`.
+
+### Apagar tudo do projeto no Docker
+
+Remove o container, a rede, o volume com os dados e a imagem construída:
+
+```bash
+docker compose down -v --rmi local
+```
+
+### Recriar o banco do zero
+
+```bash
+docker compose down -v
+docker compose up -d --build --wait
+python manage.py migrate
+python BancoDeDados.py
+```
+
+### Limpar o Docker inteiro (todos os projetos)
+
+> **Cuidado:** isso apaga containers parados, imagens sem uso, redes, volumes e cache de build de **todos** os projetos da máquina, não só deste. Os dados de outros bancos guardados em volumes serão perdidos.
+
+```bash
+docker compose down -v --rmi local   # remove o deste projeto
+docker system prune -a --volumes     # remove todo o resto que não está em uso
+```
+
+Containers que estiverem rodando de outros projetos não são removidos. Para conferir o que sobrou: `docker ps -a`, `docker images` e `docker volume ls`.
+
 ## Comandos úteis
 
 | Ação                                | Comando                              |
 |-------------------------------------|--------------------------------------|
 | Criar migrations após alterar models | `python manage.py makemigrations`    |
 | Aplicar migrations                   | `python manage.py migrate`           |
+| Importar os dados simulados          | `python BancoDeDados.py`             |
 | Rodar os testes                      | `python manage.py test`              |
 | Abrir o shell do Django              | `python manage.py shell`             |
 | Desativar o ambiente virtual         | `deactivate`                         |

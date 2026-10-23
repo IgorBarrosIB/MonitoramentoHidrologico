@@ -1,0 +1,16 @@
+services:
+  db:
+    build: ./docker/postgres
+    image: monitoramento-postgres:local
+    environment:
+      POSTGRES_DB: ${PG_DB:-monitoramento}
+      POSTGRES_USER: ${PG_USER:-monitoramento}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-monitoramento}
+    ports:
+      - "127.0.0.1:${PG_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:

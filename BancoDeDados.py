@@ -2,12 +2,17 @@
 
 import math
 import os
-import sqlite3
 from datetime import datetime, timezone
-from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent
-file_path = os.environ.get('DB_PATH', str(BASE_DIR / 'db.sqlite3'))
+import psycopg
+
+conninfo = psycopg.conninfo.make_conninfo(
+    dbname=os.environ.get('PG_DB', 'monitoramento'),
+    user=os.environ.get('PG_USER', 'monitoramento'),
+    password=os.environ.get('PG_PASSWORD', 'monitoramento'),
+    host=os.environ.get('PG_HOST', '127.0.0.1'),
+    port=os.environ.get('PG_PORT', '5433'),
+)
 
 stations = [
     {'id': 'EST-01', 'name': 'Estação Aurora', 'river': 'Rio Aurora', 'municipality': 'Vila Aurora'},
@@ -15,32 +20,38 @@ stations = [
     {'id': 'EST-03', 'name': 'Estação Campo Alto', 'river': 'Rio do Campo', 'municipality': 'Campo Alto'},
 ]
 
-CREATE_TABLES = """
-CREATE TABLE IF NOT EXISTS stations (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    river TEXT NOT NULL,
-    municipality TEXT NOT NULL
-);
-CREATE TABLE IF NOT EXISTS observations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    station_id TEXT NOT NULL REFERENCES stations (id),
-    metric TEXT NOT NULL,
-    observed_at TEXT NOT NULL,
-    value REAL NOT NULL,
-    unit TEXT NOT NULL,
-    source TEXT NOT NULL,
-    UNIQUE (station_id, metric, observed_at)
-);
-"""
+CREATE_TABLES = [
+    """
+    CREATE TABLE IF NOT EXISTS stations (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        river TEXT NOT NULL,
+        municipality TEXT NOT NULL
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS observations (
+        id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        station_id TEXT NOT NULL REFERENCES stations (id),
+        metric TEXT NOT NULL,
+        observed_at TEXT NOT NULL,
+        value DOUBLE PRECISION NOT NULL,
+        unit TEXT NOT NULL,
+        source TEXT NOT NULL,
+        UNIQUE (station_id, metric, observed_at)
+    )
+    """,
+]
 
 INSERT_STATION = (
-    'INSERT OR IGNORE INTO stations (id, name, river, municipality) '
-    'VALUES (:id, :name, :river, :municipality)'
+    'INSERT INTO stations (id, name, river, municipality) '
+    'VALUES (%(id)s, %(name)s, %(river)s, %(municipality)s) '
+    'ON CONFLICT DO NOTHING'
 )
 INSERT_OBSERVATION = (
-    'INSERT OR IGNORE INTO observations (station_id, metric, observed_at, value, unit, source) '
-    "VALUES (:station_id, :metric, :observed_at, :value, :unit, 'synthetic')"
+    'INSERT INTO observations (station_id, metric, observed_at, value, unit, source) '
+    "VALUES (%(station_id)s, %(metric)s, %(observed_at)s, %(value)s, %(unit)s, 'synthetic') "
+    'ON CONFLICT DO NOTHING'
 )
 
 HOUR_MS = 3600000
@@ -85,10 +96,10 @@ def seed(db):
 
 
 if __name__ == '__main__':
-    db = sqlite3.connect(file_path)
-    db.executescript(CREATE_TABLES)
-    with db:
+    with psycopg.connect(conninfo) as db:
+        for statement in CREATE_TABLES:
+            db.execute(statement)
         seed(db)
-    count = db.execute('SELECT COUNT(*) AS count FROM observations').fetchone()[0]
-    print(f'Amostra simulada pronta em {file_path} ({count} observações).')
-    db.close()
+        count = db.execute('SELECT COUNT(*) AS count FROM observations').fetchone()[0]
+        dbname = db.info.dbname
+    print(f'Amostra simulada pronta em {dbname} ({count} observações).')
