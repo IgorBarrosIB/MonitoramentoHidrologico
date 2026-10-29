@@ -37,7 +37,33 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'django_filters',
+    'monitoramento',
+    'drf_spectacular',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+   'TITLE': 'API de Monitoramento Hidrológico',
+   'DESCRIPTION': 'API para gerenciar monitoramento hidrológico.',
+   'VERSION': '1.0.0',
+   'SERVE_INCLUDE_SCHEMA': False,
+   'REDOC_DIST': 'https://cdn.jsdelivr.net/npm/redoc@2.1.5',
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
