@@ -112,8 +112,68 @@ python manage.py runserver
 
 O projeto fica disponível em:
 
-- Aplicação: http://127.0.0.1:8000/
+- API: http://127.0.0.1:8000/api/
+- Documentação (Swagger): http://127.0.0.1:8000/api/docs/
 - Admin: http://127.0.0.1:8000/admin/
+
+## Rotas
+
+Todas as rotas da API ficam sob o prefixo `/api/`. Endereço base local: `http://127.0.0.1:8000`.
+
+### Estações
+
+| Método | Rota | Descrição | Autenticação |
+|---|---|---|---|
+| `GET` | `/api/estacoes/` | Lista as estações | Não |
+| `POST` | `/api/estacoes/` | Cria uma estação | Sim |
+| `GET` | `/api/estacoes/{id}/` | Detalha uma estação (ex.: `EST-01`) | Não |
+| `PUT` | `/api/estacoes/{id}/` | Substitui uma estação | Sim |
+| `PATCH` | `/api/estacoes/{id}/` | Atualiza campos de uma estação | Sim |
+| `DELETE` | `/api/estacoes/{id}/` | Remove uma estação (e as observações dela) | Sim |
+
+### Observações
+
+| Método | Rota | Descrição | Autenticação |
+|---|---|---|---|
+| `GET` | `/api/observacoes/` | Lista as observações | Não |
+| `POST` | `/api/observacoes/` | Cria uma observação | Sim |
+| `GET` | `/api/observacoes/{id}/` | Detalha uma observação | Não |
+| `PUT` | `/api/observacoes/{id}/` | Substitui uma observação | Sim |
+| `PATCH` | `/api/observacoes/{id}/` | Atualiza campos de uma observação | Sim |
+| `DELETE` | `/api/observacoes/{id}/` | Remove uma observação | Sim |
+
+As listagens aceitam filtros pela query string, por exemplo `/api/observacoes/?station=EST-01&metric=level`. A lista completa está em [docs/filtros.md](docs/filtros.md).
+
+### Autenticação e documentação
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/api/token/` | Gera o token de acesso a partir de `username` e `password` |
+| `GET` | `/api/` | Raiz navegável da API, com links para os recursos |
+| `GET` | `/api/schema/` | Schema OpenAPI (YAML) |
+| `GET` | `/api/docs/` | Documentação interativa (Swagger UI) |
+| `GET` | `/api/redoc/` | Documentação em ReDoc |
+| — | `/admin/` | Painel administrativo do Django |
+
+### Usando o token
+
+A leitura (`GET`) é pública. Para criar, alterar ou remover, é preciso autenticar. Gere o token com um usuário existente (por exemplo, o superusuário):
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/token/ \
+     -d "username=<usuario>" -d "password=<senha>"
+# {"token": "9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b"}
+```
+
+Envie o token no cabeçalho `Authorization` das requisições:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/estacoes/ \
+     -H "Authorization: Token <seu-token>" \
+     -d "id=EST-04" -d "name=Estação Nova" -d "river=Rio Novo" -d "municipality=Nova Vila"
+```
+
+Sem o token, essas requisições retornam `401 Unauthorized`.
 
 ## Comandos úteis
 
