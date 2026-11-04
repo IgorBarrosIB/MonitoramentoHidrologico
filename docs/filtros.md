@@ -2,8 +2,6 @@
 
 Os endpoints de listagem aceitam filtros pela query string (`?campo=valor`). Os filtros usam o [django-filter](https://django-filter.readthedocs.io/) e são definidos em `filterset_fields`, no arquivo `monitoramento/views.py`.
 
-> **Rotas:** os caminhos `/stations/` e `/observations/` abaixo supõem que os ViewSets vão ser registrados com esses nomes no `urls.py`. Hoje as rotas ainda não estão registradas.
-
 ## Regras gerais
 
 - Todo filtro compara por **igualdade exata**. Maiúsculas e minúsculas fazem diferença, e não há busca parcial.
@@ -14,7 +12,7 @@ Os endpoints de listagem aceitam filtros pela query string (`?campo=valor`). Os 
 
 ---
 
-## Estações: `/stations/`
+## Estações: `/api/estacoes/`
 
 | Filtro | Tipo | Descrição | Exemplo |
 |---|---|---|---|
@@ -33,13 +31,13 @@ Os endpoints de listagem aceitam filtros pela query string (`?campo=valor`). Os 
 ### Exemplos
 
 ```http
-GET /stations/?municipality=Campo Alto
-GET /stations/?river=Rio Aurora
+GET /api/estacoes/?municipality=Campo Alto
+GET /api/estacoes/?river=Rio Aurora
 ```
 
 ---
 
-## Observações: `/observations/`
+## Observações: `/api/observacoes/`
 
 | Filtro | Tipo | Descrição | Exemplo |
 |---|---|---|---|
@@ -61,16 +59,16 @@ GET /stations/?river=Rio Aurora
 
 ```http
 # Todas as observações da estação EST-01
-GET /observations/?station=EST-01
+GET /api/observacoes/?station=EST-01
 
 # Só o nível do rio na estação EST-02
-GET /observations/?station=EST-02&metric=level
+GET /api/observacoes/?station=EST-02&metric=level
 
 # Horas sem chuva na estação EST-03
-GET /observations/?station=EST-03&metric=rain&value=0
+GET /api/observacoes/?station=EST-03&metric=rain&value=0
 
 # Leitura de um horário específico
-GET /observations/?observed_at=2026-11-04T12:00:00.000Z
+GET /api/observacoes/?observed_at=2026-11-04T12:00:00.000Z
 ```
 
 ---
