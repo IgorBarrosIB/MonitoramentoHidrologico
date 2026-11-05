@@ -72,3 +72,6 @@ staticfiles/
 *.swo
 *~
 .DS_Store
+
+# claude 
+*.claude/
