@@ -6,8 +6,8 @@ from rest_framework.authtoken.views import obtain_auth_token
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView # Adicionado para o drf-spectacular
 
 router = DefaultRouter()
-router.register(r'estacoes', StationViewSet)
-router.register(r'observacoes', ObservationViewSet)
+router.register(r'stations', StationViewSet)
+router.register(r'observations', ObservationViewSet)
 
 urlpatterns = [
    path('admin/', admin.site.urls),
