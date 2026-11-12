@@ -5,6 +5,7 @@ from .serializers import StationSerializer, ObservationSerializer # serializers 
 from django_filters.rest_framework import DjangoFilterBackend  # permite filtragem via query params
 from rest_framework.decorators import action                  # decorator que cria rotas extras dentro de um ViewSet
 from rest_framework.response import Response                  # resposta do DRF que converte dict/list em JSON
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample, OpenApiTypes
 
 # ViewSet para o modelo Station — fornece endpoints list/retrieve/create/update/destroy
 class StationViewSet(viewsets.ModelViewSet):
@@ -13,7 +14,7 @@ class StationViewSet(viewsets.ModelViewSet):
    filter_backends = [DjangoFilterBackend]  # habilita filtragem via django-filter
    # campos permitidos para filtragem via query string, ex: ?municipality=Vale Verde
    filterset_fields = ['name', 'river', 'municipality']
-   
+
    # Estudar
    # GET /api/stations/{id}/summary/ — últimas leituras e local da estação
    # detail=True: a rota atua sobre UMA estação, por isso a URL leva o {id}
@@ -39,8 +40,55 @@ class StationViewSet(viewsets.ModelViewSet):
            'station': StationSerializer(station).data,  # local: converte a estação em dict (id, nome, rio, município)
            'latest': latest,                            # última leitura de cada métrica
        })
+
    # "Pega o caderninho da EST-01, olha só as anotações de nível do rio (level) e me mostra as das últimas 24 horas, em ordem."
    # GET /api/stations/{id}/series/?metric=level&hours=24 — histórico de uma métrica para o gráfico
+   @extend_schema(
+       summary="Consultar histórico de nível do rio ou chuva",
+       description=(
+           "Retorna as leituras de uma estação em ordem cronológica. "
+           "Use metric=level para nível do rio ou metric=rain para chuva. "
+           "O período padrão é de 24 horas."
+       ),
+       parameters=[
+           OpenApiParameter(
+               name="metric",
+               type=OpenApiTypes.STR,
+               location=OpenApiParameter.QUERY,
+               description="Métrica consultada: level (nível do rio) ou rain (chuva).",
+               required=False,
+               default="level",
+               enum=["level", "rain"],
+           ),
+           OpenApiParameter(
+               name="hours",
+               type=OpenApiTypes.INT,
+               location=OpenApiParameter.QUERY,
+               description="Período em horas. Padrão: 24. Intervalo previsto no desafio: 1 a 72.",
+               required=False,
+               default=24,
+           ),
+       ],
+       examples=[
+           OpenApiExample(
+               name="Exemplo de histórico do nível do rio",
+               value={
+                   "station": "EST-01",
+                   "metric": "level",
+                   "hours": 24,
+                   "unit": "m",
+                   "points": [
+                       {
+                           "observed_at": "2026-11-11T20:00:00.000Z",
+                           "value": 1.13,
+                       }
+                   ],
+               },
+               response_only=True,
+               status_codes=["200"],
+           ),
+       ],
+   )
    @action(detail=True, methods=['get'])
    def series(self, request, pk=None):
        station = self.get_object()  # busca a estação pelo {id}; se não existir, retorna 404
@@ -80,7 +128,7 @@ class StationViewSet(viewsets.ModelViewSet):
 
 # ViewSet para o modelo Observation — fornece endpoints CRUD e suporte a filtros
 class ObservationViewSet(viewsets.ModelViewSet):
-   queryset = Observation.objects.all()         # queryset base para operações do ViewSet
+   queryset = Observation.objects.all()         # queryset base usado pelo ViewSet
    serializer_class = ObservationSerializer     # serializer usado para observations
    filter_backends = [DjangoFilterBackend]  # habilita filtragem via django-filter
    # campos permitidos para filtragem via query string, ex: ?station=EST-01&metric=level
