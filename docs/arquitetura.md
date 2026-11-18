@@ -58,7 +58,7 @@ As ações `summary` e `series` são criadas com `@action(detail=True, methods=[
 
 ## Modelo de dados
 
-![Descrição](MonitoramentoHidrologico/docs/imagens/MER-DER.png)
+![Descrição](docs/imagens/MER-DER.png)
 
 ### `Station` (tabela `stations`)
 
