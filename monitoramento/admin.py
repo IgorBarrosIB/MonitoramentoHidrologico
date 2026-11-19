@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Station, Observation
+from rest_framework.authtoken.models import Token
 
 # Admin para o modelo Station: mostra o campo 'name' e permite busca por nome
 @admin.register(Station)
@@ -17,4 +18,4 @@ class ObservationAdmin(admin.ModelAdmin):
    list_filter =   ['station_id', 'metric','observed_at', 'unit']            # filtros laterais
 
 # O Token já aparece no admin: o app 'rest_framework.authtoken' registra o próprio admin
-
+admin.site.register(Token)
