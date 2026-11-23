@@ -1,0 +1,34 @@
+
+<section class="chart-card">
+  <h2>Evolução do nível do rio</h2>
+
+  @if (levelSeries && levelSeries.points.length > 0) {
+    <div class="chart-container">
+      <canvas
+        baseChart
+        [data]="levelChartData"
+        [options]="levelChartOptions"
+        type="line">
+      </canvas>
+    </div>
+  } @else {
+    <p>Sem dados históricos de nível disponíveis.</p>
+  }
+</section>
+
+<section class="chart-card">
+  <h2>Histórico de chuva</h2>
+
+  @if (rainSeries && rainSeries.points.length > 0) {
+    <div class="chart-container">
+      <canvas
+        baseChart
+        [data]="rainChartData"
+        [options]="rainChartOptions"
+        type="line">
+      </canvas>
+    </div>
+  } @else {
+    <p>Sem dados históricos de chuva disponíveis.</p>
+  }
+</section>
