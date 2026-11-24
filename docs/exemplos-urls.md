@@ -23,12 +23,6 @@ curl -X POST http://127.0.0.1:8000/api/token/ \
   -d "username=igorbarrosib" -d "password=SUA_SENHA"
 ```
 
-Para ler o token direto do banco:
-
-```bash
-python3 -c "import sqlite3;print(sqlite3.connect('db.sqlite3').execute('select key from authtoken_token').fetchone()[0])"
-```
-
 ## Estações (`StationViewSet`)
 
 O `{id}` da estação é o código textual, ex.: `EST-01`.
@@ -170,6 +164,49 @@ curl -X PATCH http://127.0.0.1:8000/api/observations/1/ \
 curl -X DELETE http://127.0.0.1:8000/api/observations/1/ \
   -H "Authorization: Token ea1bc81a9ff3cf2d4ddf214aec99751e80a8885e"
 ```
+
+## No navegador
+
+As rotas `GET` podem ser abertas direto na barra de endereço. O DRF mostra a resposta na API navegável (HTML); para ver o JSON puro, acrescente `?format=json` (ou `&format=json` se a URL já tiver `?`).
+
+### Estações
+
+| Função | URL |
+|---|---|
+| `list` | http://127.0.0.1:8000/api/stations/ |
+| `list` em JSON puro | http://127.0.0.1:8000/api/stations/?format=json |
+| `list` por município | http://127.0.0.1:8000/api/stations/?municipality=Vale%20Verde |
+| `list` por rio | http://127.0.0.1:8000/api/stations/?river=Rio%20Aurora |
+| `list` por nome | http://127.0.0.1:8000/api/stations/?name=Esta%C3%A7%C3%A3o%20Aurora |
+| `retrieve` | http://127.0.0.1:8000/api/stations/EST-01/ |
+| `summary` | http://127.0.0.1:8000/api/stations/EST-01/summary/ |
+| `series` (padrão: nível, 24 h) | http://127.0.0.1:8000/api/stations/EST-01/series/ |
+| `series` nível, 48 h | http://127.0.0.1:8000/api/stations/EST-01/series/?metric=level&hours=48 |
+| `series` chuva, 6 h | http://127.0.0.1:8000/api/stations/EST-02/series/?metric=rain&hours=6 |
+| `series` em JSON puro | http://127.0.0.1:8000/api/stations/EST-01/series/?metric=level&hours=24&format=json |
+
+### Observações
+
+| Função | URL |
+|---|---|
+| `list` | http://127.0.0.1:8000/api/observations/ |
+| `list` de uma estação | http://127.0.0.1:8000/api/observations/?station_id=EST-01 |
+| `list` de uma estação e métrica | http://127.0.0.1:8000/api/observations/?station_id=EST-01&metric=level |
+| `list` por métrica e unidade | http://127.0.0.1:8000/api/observations/?metric=rain&unit=mm/h |
+| `list` por data/hora | http://127.0.0.1:8000/api/observations/?observed_at=2026-11-21T13:00:00.000Z |
+| `retrieve` | http://127.0.0.1:8000/api/observations/1/ |
+
+### Criar, alterar e remover pelo navegador
+
+O navegador não envia o cabeçalho `Authorization`, então o token não é usado aqui. A autenticação é pela sessão:
+
+1. Faça login em http://127.0.0.1:8000/admin/.
+2. No mesmo navegador, abra a rota desejada:
+   - `create`: http://127.0.0.1:8000/api/stations/ ou http://127.0.0.1:8000/api/observations/ — formulário no fim da página, botão **POST**.
+   - `update` / `partial_update`: http://127.0.0.1:8000/api/stations/EST-99/ — formulário no fim da página, botões **PUT** e **PATCH**.
+   - `destroy`: http://127.0.0.1:8000/api/stations/EST-99/ — botão **DELETE** no topo da página.
+
+Outra opção é o Swagger em http://127.0.0.1:8000/api/docs/: clique em **Authorize**, informe `Token ea1bc81a9ff3cf2d4ddf214aec99751e80a8885e` e use **Try it out** em cada rota.
 
 ## Documentação e admin
 
