@@ -1,8 +1,10 @@
 # Monitoramento Hidrológico
 
-API em Django + Django REST Framework para monitoramento hidrológico.
+API em Django + Django REST Framework para monitoramento hidrológico, com um frontend em Angular que exibe o resumo e os gráficos de nível e chuva de cada estação.
 
 ## Stack
+
+**Backend**
 
 - Python 3.12+
 - Django 6.1
@@ -11,6 +13,13 @@ API em Django + Django REST Framework para monitoramento hidrológico.
 - drf-spectacular (documentação OpenAPI)
 - SQLite (banco de desenvolvimento)
 
+**Frontend**
+
+- Node.js 22.22+ / 24.15+ / 26+
+- Angular 22 (com SSR via `@angular/ssr` + Express)
+- Chart.js + ng2-charts (gráficos)
+- Vitest (testes)
+
 ## Estrutura
 
 ```
@@ -18,12 +27,18 @@ API em Django + Django REST Framework para monitoramento hidrológico.
 ├── manage.py
 ├── requirements.txt
 ├── monitoramentohidrologico/   # configuração do projeto (settings, urls, wsgi/asgi)
-└── monitoramento/              # app principal
+├── monitoramento/              # app principal
+└── frontend/                   # aplicação Angular
+    ├── proxy.conf.json         # redireciona /api para o Django em desenvolvimento
+    └── src/app/
+        ├── services/           # chamadas à API (stations, summary, series)
+        └── components/         # componentes (hydro-charts)
 ```
 
 ## Pré-requisitos
 
 - **Python 3.12 ou superior** (exigido pelo Django 6.1)
+- **Node.js 22.22+, 24.15+ ou 26+** e **npm** (exigidos pelo Angular CLI 22) — só para o frontend
 - **Git**
 
 Confira a versão instalada:
@@ -96,7 +111,15 @@ pip install -r requirements.txt
 python manage.py migrate
 ```
 
-### 5. Criar um superusuário (opcional)
+### 5. Popular o banco com dados simulados
+
+As tabelas `stations` e `observations` são criadas e populadas pelo script `BancoDeDados.py`, e não pelas migrations. Sem esse passo, a API retorna `no such table: stations` e o frontend fica sem dados:
+
+```bash
+python BancoDeDados.py   # cria 3 estações e 72 h de leituras
+```
+
+### 6. Criar um superusuário (opcional)
 
 Necessário para acessar o painel administrativo:
 
@@ -104,7 +127,7 @@ Necessário para acessar o painel administrativo:
 python manage.py createsuperuser
 ```
 
-### 6. Rodar o servidor
+### 7. Rodar o servidor
 
 ```bash
 python manage.py runserver
@@ -115,6 +138,78 @@ O projeto fica disponível em:
 - API: http://127.0.0.1:8000/api/
 - Documentação (Swagger): http://127.0.0.1:8000/api/docs/
 - Admin: http://127.0.0.1:8000/admin/
+
+## Subindo o frontend
+
+O frontend fica na pasta `frontend/` e consome a API do Django. **Deixe o backend rodando** (passo 7 acima) em outro terminal antes de iniciar o frontend.
+
+### 1. Instalar o Node.js
+
+Confira a versão instalada:
+
+```bash
+node --version
+npm --version
+```
+
+Se não tiver o Node.js (ou a versão for antiga):
+
+- **Linux / macOS:** recomendado usar o [nvm](https://github.com/nvm-sh/nvm):
+  ```bash
+  nvm install --lts
+  nvm use --lts
+  ```
+- **Windows:** baixe o instalador LTS em [nodejs.org](https://nodejs.org/).
+
+### 2. Instalar as dependências
+
+```bash
+cd frontend
+npm install
+```
+
+> Use `npm ci` para instalar exatamente as versões do `package-lock.json`.
+
+### 3. Rodar o servidor de desenvolvimento
+
+```bash
+npm start
+```
+
+Esse comando executa `ng serve --proxy-config proxy.conf.json`. O frontend fica disponível em:
+
+- Frontend: http://localhost:4200/
+
+Em desenvolvimento, as requisições para `/api/...` feitas pelo Angular são encaminhadas pelo proxy ([frontend/proxy.conf.json](frontend/proxy.conf.json)) para `http://localhost:8000`, onde o Django está rodando. Por isso não é preciso configurar CORS. Se o Django estiver em outra porta, ajuste o `target` nesse arquivo.
+
+> Rode `npm start` e não `ng serve` direto: sem a opção `--proxy-config`, as chamadas à API não chegam ao Django.
+
+### 4. Build de produção (opcional)
+
+O projeto usa SSR (renderização no servidor) com Express:
+
+```bash
+npm run build              # gera dist/frontend/browser e dist/frontend/server
+npm run serve:ssr:frontend # sobe o servidor Node em http://localhost:4000
+```
+
+A porta pode ser alterada pela variável `PORT` (ex.: `PORT=8080 npm run serve:ssr:frontend`).
+
+> ⚠️ **Limitação atual:** o `npm run build` falha com `An error occurred while prerendering route '/'` (timeout). A rota `/` está configurada como `RenderMode.Prerender` em [frontend/src/app/app.routes.server.ts](frontend/src/app/app.routes.server.ts), e durante o build o Angular tenta chamar `/api/...`, que não existe nesse momento. Enquanto isso não for corrigido (por exemplo, trocando para `RenderMode.Client` ou `RenderMode.Server`), use o `npm start` para rodar o frontend.
+
+> O servidor Express de produção não tem o proxy para `/api`. Para usar o build fora do ambiente de desenvolvimento, é preciso servir frontend e API no mesmo domínio (por exemplo, atrás de um Nginx que encaminhe `/api` para o Django).
+
+### Comandos do frontend
+
+Execute dentro da pasta `frontend/`:
+
+| Ação                                   | Comando                       |
+|----------------------------------------|-------------------------------|
+| Servidor de desenvolvimento (com proxy) | `npm start`                   |
+| Build de produção                      | `npm run build`               |
+| Build contínuo (modo desenvolvimento)  | `npm run watch`               |
+| Rodar os testes (Vitest)               | `npm test`                    |
+| Servir o build SSR                     | `npm run serve:ssr:frontend`  |
 
 ## Rotas
 

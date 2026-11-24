@@ -1,0 +1,96 @@
+
+<main class="container">
+
+  <h1>Monitoramento Hidrológico</h1>
+  <p>Acompanhe as estações de monitoramento.</p>
+
+  @if (loading) {
+    <p>Carregando estações...</p>
+  } @else {
+
+    <label for="station">Selecione uma estação:</label>
+
+    <select
+      id="station"
+      [value]="selectedStationId"
+      (change)="selectStation($any($event.target).value)"
+    >
+      @for (station of stations; track station.id) {
+        <option [value]="station.id">
+          {{ station.name }}
+        </option>
+      }
+    </select>
+
+    @if (summary) {
+
+      <section class="station-info">
+        <h2>{{ summary.station.name }}</h2>
+        <p><strong>Rio:</strong> {{ summary.station.river }}</p>
+        <p><strong>Município:</strong> {{ summary.station.municipality }}</p>
+      </section>
+
+      <section class="indicators">
+
+        <article class="station-card">
+          <h3>Nível do rio</h3>
+
+          @if (summary.latest.level; as level) {
+            <p class="value">{{ level.value }} {{ level.unit }}</p>
+            <small>Última leitura: {{ level.observed_at | date:'dd/MM/yyyy HH:mm' }}</small>
+          } @else {
+            <p>Sem leituras disponíveis.</p>
+          }
+        </article>
+
+        <article class="station-card">
+          <h3>Chuva</h3>
+
+          @if (summary.latest.rain; as rain) {
+            <p class="value">{{ rain.value }} {{ rain.unit }}</p>
+            <small>Última leitura: {{ rain.observed_at | date:'dd/MM/yyyy HH:mm' }}</small>
+          } @else {
+            <p>Sem leituras disponíveis.</p>
+          }
+        </article>
+
+      </section>
+
+      <div class="period-filter">
+        <button
+          type="button"
+          [class.active]="selectedHours === 12"
+          (click)="changePeriod(12)">
+          12 horas
+        </button>
+
+        <button
+          type="button"
+          [class.active]="selectedHours === 24"
+          (click)="changePeriod(24)">
+          24 horas
+        </button>
+
+        <button
+          type="button"
+          [class.active]="selectedHours === 48"
+          (click)="changePeriod(48)">
+          48 horas
+        </button>
+      </div>
+
+      @if (selectedStationId) {
+        <app-hydro-charts
+          [levelSeries]="levelSeries"
+          [rainSeries]="rainSeries">
+        </app-hydro-charts>
+      }
+
+    }
+
+    @if (error) {
+      <p class="error">{{ error }}</p>
+    }
+  }
+
+</main>
