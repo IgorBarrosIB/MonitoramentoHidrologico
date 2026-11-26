@@ -1,7 +1,7 @@
 
 import { Component, Input, OnChanges } from '@angular/core';
 import { BaseChartDirective } from 'ng2-charts';
-import { ChartConfiguration } from 'chart.js';
+import { ChartConfiguration, Plugin } from 'chart.js';
 import { SeriesPoint, StationSeries } from '../../services/series';
 
 const LEVEL_COLOR = '#0284c7';
@@ -29,8 +29,58 @@ export class HydroCharts implements OnChanges {
   levelMin: number | null = null;
   levelMax: number | null = null;
   rainTotal = 0;
-  private levelAxisRange: { min: number; max: number } | null = null;
   rainHours = 0;
+  private levelAxisRange: { min: number; max: number } | null = null;
+  private levelMinIndex = -1;
+  private levelMaxIndex = -1;
+
+  // Escreve "mín." e "máx." ao lado dos pontos extremos do nível (rótulo direto, sem depender do tooltip)
+  levelChartPlugins: Plugin<'line'>[] = [
+    {
+      id: 'levelMinMaxLabels',
+      afterDatasetsDraw: (chart) => {
+        const meta = chart.getDatasetMeta(0);
+        const area = chart.chartArea;
+        const ctx = chart.ctx;
+        if (!meta?.data.length || this.levelMin === null || this.levelMax === null) {
+          return;
+        }
+
+        const labels = [
+          { index: this.levelMaxIndex, text: `máx. ${this.formatNumber(this.levelMax)} m`, above: true },
+          { index: this.levelMinIndex, text: `mín. ${this.formatNumber(this.levelMin)} m`, above: false },
+        ];
+        // Nível constante: mínimo e máximo são o mesmo ponto, então mostra um rótulo só
+        if (this.levelMin === this.levelMax) {
+          labels.pop();
+        }
+
+        ctx.save();
+        ctx.font = '600 12px Arial, sans-serif';
+        ctx.fillStyle = '#1e293b';
+        ctx.textBaseline = 'middle';
+
+        for (const label of labels) {
+          const point = meta.data[label.index];
+          if (!point) {
+            continue;
+          }
+          const width = ctx.measureText(label.text).width;
+          // Centraliza no ponto, mas sem sair das bordas da área do gráfico
+          const x = Math.min(Math.max(point.x - width / 2, area.left + 4), area.right - width - 4);
+          let y = label.above ? point.y - 14 : point.y + 14;
+          if (y < area.top + 8) {
+            y = point.y + 14;
+          } else if (y > area.bottom - 8) {
+            y = point.y - 14;
+          }
+          ctx.textAlign = 'left';
+          ctx.fillText(label.text, x, y);
+        }
+        ctx.restore();
+      },
+    },
+  ];
 
   // Configuração visual do gráfico de nível do rio
   levelChartOptions: ChartConfiguration<'line'>['options'] = {
@@ -105,6 +155,12 @@ export class HydroCharts implements OnChanges {
       this.levelMax = values.length ? Math.max(...values) : null;
       this.levelAxisRange = this.minimumLevelRange(this.levelMin, this.levelMax);
 
+      // Primeira leitura com o menor e com o maior nível: recebem marcador e rótulo no gráfico
+      this.levelMinIndex = values.indexOf(this.levelMin!);
+      this.levelMaxIndex = values.indexOf(this.levelMax!);
+      const baseRadius = points.length <= 24 ? 3 : 0;
+      const isExtreme = (index: number) => index === this.levelMinIndex || index === this.levelMaxIndex;
+
       this.levelChartData = {
         labels: this.labels(points),
         datasets: [
@@ -118,8 +174,12 @@ export class HydroCharts implements OnChanges {
             // "monotone" não inventa picos/vales entre as leituras, ao contrário da curva padrão
             cubicInterpolationMode: 'monotone',
             // Com poucas leituras (ex.: filtro de 1 ou 2 horas), mostra cada ponto medido
-            pointRadius: points.length <= 24 ? 3 : 0,
-            pointHoverRadius: 5,
+            // Mínimo e máximo sempre aparecem, mesmo quando os outros pontos estão ocultos
+            pointRadius: values.map((_, index) => (isExtreme(index) ? 5 : baseRadius)),
+            pointBackgroundColor: values.map((_, index) => (isExtreme(index) ? LEVEL_COLOR : '#ffffff')),
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: values.map((_, index) => (isExtreme(index) ? 2 : 1)),
+            pointHoverRadius: 6,
             pointHitRadius: 10,
           },
         ],
