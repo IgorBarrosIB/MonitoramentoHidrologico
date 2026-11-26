@@ -3,32 +3,45 @@
   <h2>Evolução do nível do rio</h2>
 
   @if (levelSeries && levelSeries.points.length > 0) {
+    <p class="chart-summary">
+      Mínimo <strong>{{ formatNumber(levelMin!) }} m</strong>
+      · Máximo <strong>{{ formatNumber(levelMax!) }} m</strong>
+      · {{ levelSeries.points.length }} leituras
+    </p>
     <div class="chart-container">
       <canvas
         baseChart
         [data]="levelChartData"
         [options]="levelChartOptions"
-        type="line">
+        type="line"
+        role="img"
+        aria-label="Gráfico de linha do nível do rio ao longo do tempo">
       </canvas>
     </div>
   } @else {
-    <p>Sem dados históricos de nível disponíveis.</p>
+    <p>Sem dados de nível para o período selecionado.</p>
   }
 </section>
 
 <section class="chart-card">
-  <h2>Histórico de chuva</h2>
+  <h2>Chuva por hora</h2>
 
   @if (rainSeries && rainSeries.points.length > 0) {
+    <p class="chart-summary">
+      Acumulado <strong>{{ formatNumber(rainTotal) }} mm</strong>
+      · Choveu em <strong>{{ rainHours }}</strong> de {{ rainSeries.points.length }} horas
+    </p>
     <div class="chart-container">
       <canvas
         baseChart
         [data]="rainChartData"
         [options]="rainChartOptions"
-        type="line">
+        type="bar"
+        role="img"
+        aria-label="Gráfico de barras da chuva por hora">
       </canvas>
     </div>
   } @else {
-    <p>Sem dados históricos de chuva disponíveis.</p>
+    <p>Sem dados de chuva para o período selecionado.</p>
   }
 </section>

@@ -30,4 +30,20 @@ export class SeriesService {
       `/api/stations/${stationId}/series/?metric=${metric}&hours=${hours}`
     );
   }
+
+  // Busca as leituras de um intervalo exato (ex.: um dia inteiro escolhido no calendário)
+  getSeriesBetween(
+    stationId: string,
+    metric: 'level' | 'rain',
+    start: Date,
+    end: Date
+  ): Observable<StationSeries> {
+    return this.http.get<StationSeries>(`/api/stations/${stationId}/series/`, {
+      params: {
+        metric,
+        start: start.toISOString(),
+        end: end.toISOString(),
+      },
+    });
+  }
 }

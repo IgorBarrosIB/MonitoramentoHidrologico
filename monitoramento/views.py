@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta                       # datas e intervalos de tempo (ex.: 24 horas)
+from datetime import datetime, timedelta, timezone                     # datas e intervalos de tempo (ex.: 24 horas)
 from rest_framework import viewsets                      # viewsets do DRF para CRUD automático
 from .models import Station, Observation                        # modelos/tabelas usados nas views
 from .serializers import StationSerializer, ObservationSerializer # serializers para (de)serializar os modelos
@@ -68,6 +68,20 @@ class StationViewSet(viewsets.ModelViewSet):
                required=False,
                default=24,
            ),
+           OpenApiParameter(
+               name="start",
+               type=OpenApiTypes.DATETIME,
+               location=OpenApiParameter.QUERY,
+               description="Início do intervalo (ISO 8601 com fuso, inclusivo). Usado junto com end; ignora hours.",
+               required=False,
+           ),
+           OpenApiParameter(
+               name="end",
+               type=OpenApiTypes.DATETIME,
+               location=OpenApiParameter.QUERY,
+               description="Fim do intervalo (ISO 8601 com fuso, exclusivo). Usado junto com start.",
+               required=False,
+           ),
        ],
        examples=[
            OpenApiExample(
@@ -102,6 +116,37 @@ class StationViewSet(viewsets.ModelViewSet):
 
        # todas as leituras desta estação e métrica, da mais antiga para a mais nova (ordem do gráfico)
        observations = Observation.objects.filter(station=station, metric=metric).order_by('observed_at')
+
+       # filtro por intervalo exato (ex.: um dia escolhido no calendário): ?start=...&end=... em ISO
+       start_param = request.query_params.get('start')
+       end_param = request.query_params.get('end')
+       if start_param or end_param:
+           if not (start_param and end_param):
+               return Response({'detail': 'start e end devem ser informados juntos.'}, status=400)
+           try:
+               start = datetime.fromisoformat(start_param)
+               end = datetime.fromisoformat(end_param)
+           except ValueError:
+               return Response({'detail': 'start e end devem estar no formato ISO 8601.'}, status=400)
+           if start.tzinfo is None or end.tzinfo is None:
+               return Response({'detail': 'start e end devem informar o fuso horário (ex.: Z).'}, status=400)
+           if start >= end:
+               return Response({'detail': 'start deve ser anterior a end.'}, status=400)
+
+           # converte para UTC no mesmo formato de texto salvo no banco, para a comparação de texto funcionar
+           fmt = '%Y-%m-%dT%H:%M:%S.000Z'
+           start_text = start.astimezone(timezone.utc).strftime(fmt)
+           end_text = end.astimezone(timezone.utc).strftime(fmt)
+           observations = observations.filter(observed_at__gte=start_text, observed_at__lt=end_text)  # __lt = "menor que"
+
+           first = observations.first()
+           return Response({
+               'station': station.id,
+               'metric': metric,
+               'hours': round((end - start).total_seconds() / 3600),
+               'unit': first.unit if first else None,
+               'points': [{'observed_at': obs.observed_at, 'value': obs.value} for obs in observations],
+           })
 
        last = observations.last()  # a leitura mais recente (a última da fila); None se não houver nenhuma
        if last is None:  # sem leituras: devolve a lista vazia

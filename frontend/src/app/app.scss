@@ -80,5 +80,71 @@ select {
 
 .period-filter button {
   border-radius: 6px;
+  background: #e2e8f0;
+  color: #1e293b;
 }
 
+.period-filter button.active {
+  background: #0e7490;
+  color: white;
+}
+
+.period-filter {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.date-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 16px;
+  color: #475569;
+}
+
+.date-filter input {
+  padding: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+}
+
+.hour-filter {
+  margin-left: 0;
+}
+
+.hour-filter select {
+  display: inline-block;
+  margin-top: 0;
+  min-width: 0;
+  padding: 8px;
+}
+
+.date-filter input.active {
+  border-color: #0e7490;
+  outline: 2px solid #0e7490;
+}
+
+.period-filter button.clear {
+  background: transparent;
+  color: #0e7490;
+  text-decoration: underline;
+}
+
+
+.card-hint {
+  font-size: 12px;
+  font-weight: 400;
+  color: #64748b;
+  margin-left: 4px;
+}
+
+.period-total {
+  margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 14px;
+
+  strong {
+    color: #0e7490;
+  }
+}
