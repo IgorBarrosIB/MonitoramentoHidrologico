@@ -170,6 +170,19 @@ export class App implements OnInit {
     return (this.rainSeries?.points ?? []).reduce((sum, point) => sum + point.value, 0);
   }
 
+  // Mínimo, máximo e variação (última - primeira leitura) do nível no período filtrado
+  levelStats(): { min: number; max: number; change: number } | null {
+    const values = (this.levelSeries?.points ?? []).map((point) => point.value);
+    if (values.length === 0) {
+      return null;
+    }
+    return {
+      min: Math.min(...values),
+      max: Math.max(...values),
+      change: values[values.length - 1] - values[0],
+    };
+  }
+
   // Descreve o filtro ativo, ex.: "nas últimas 24 horas" ou "em 26/11, das 06:00 às 08:00"
   periodLabel(): string {
     if (!this.selectedDate) {

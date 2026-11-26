@@ -41,6 +41,18 @@
           } @else {
             <p>Sem leituras disponíveis.</p>
           }
+
+          <!-- O valor acima é só a última hora; o resumo abaixo acompanha o filtro dos gráficos -->
+          @if (levelStats(); as stats) {
+            <p class="period-total">
+              Nível {{ periodLabel() }}:
+              mín. <strong>{{ formatNumber(stats.min) }} m</strong>
+              · máx. <strong>{{ formatNumber(stats.max) }} m</strong>
+              · variação <strong>{{ stats.change > 0 ? '+' : '' }}{{ formatNumber(stats.change) }} m</strong>
+            </p>
+          } @else if (levelSeries) {
+            <p class="period-total">Sem leituras de nível {{ periodLabel() }}.</p>
+          }
         </article>
 
         <article class="station-card">
